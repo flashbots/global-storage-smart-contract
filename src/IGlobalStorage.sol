@@ -48,11 +48,7 @@ interface IGlobalStorage {
     /// @param blockNumber The block number when the set occurred.
     /// @param timestamp The timestamp when the set occurred.
     event GlobalValueSet(
-        address indexed owner,
-        bytes32 indexed key,
-        bytes32 value,
-        uint64 blockNumber,
-        uint64 timestamp
+        address indexed owner, bytes32 indexed key, bytes32 value, uint64 blockNumber, uint64 timestamp
     );
 
     /// @notice Emitted on batch write.
@@ -62,10 +58,6 @@ interface IGlobalStorage {
     /// @param blockNumber The block number when the set occurred.
     /// @param timestamp The timestamp when the set occurred.
     event GlobalValuesSet(
-        address indexed owner,
-        bytes32[] keys,
-        bytes32[] values,
-        uint64 blockNumber,
-        uint64 timestamp
+        address indexed owner, bytes32[] keys, bytes32[] values, uint64 blockNumber, uint64 timestamp
     );
 }
