@@ -1,14 +1,16 @@
 ## Global Storage
 
-Neutral, permissionless, namespaced key-value store intended to enable Top-of-Block (ToB) oracle updates. Writers publish values under their own address; readers fetch by `(owner, key)` and can enforce freshness via last-updated metadata.
+A neutral, permissionless, key-value store that enables high-performance, onchain market making on Layer 2 EVM chains by providing a mechanism for cheap, Top-of-Block (ToB) oracle updates.
 
 ![image info](./diagram.png)
 
 ### Why ToB?
 
-With a builder that treats `to == GlobalStorage` transactions as ToB, latency-sensitive oracle updates can land at the top of the block without allowlists or privileged keys.
+In the context of Prop AMMs, putting update transactions at the Top of Block ensures that all swap transactions in the block use the freshest price curve.
 
-This protects market makers from toxic traders who may attempt to front-run the Prop AMM's price curve update by allowing the market maker to cheaply land price curve updates at the top of the block, resulting in the market maker being able to provide tighter quotes.
+This protects market makers from toxic traders who may attempt to front-run the Prop AMM's price curve update, by allowing the market maker to cheaply land price curve updates at the top of the block, resulting in the market maker being able to provide tighter quotes.
+
+With a builder that treats `to == GlobalStorage` transactions as ToB, latency-sensitive oracle updates can land at the top of the block without allowlists or privileged keys.
 
 ### Core Idea
 
