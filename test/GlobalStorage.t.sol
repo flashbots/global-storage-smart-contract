@@ -22,15 +22,15 @@ contract GlobalStorageTest is Test {
         gs.set(key, val);
 
         assertEq(gs.get(alice, key), val);
-        (bytes32 v, uint64 ts, uint64 bn) = gs.getWithTimestamp(alice, key);
-        assertEq(v, val);
-        assertEq(bn, uint64(block.number));
-        assertGt(ts, 0);
+        (bytes32 value, uint64 timestamp, uint64 blockNumber) = gs.getWithTimestamp(alice, key);
+        assertEq(value, val);
+        assertEq(blockNumber, uint64(block.number));
+        assertGt(timestamp, 0);
 
-        uint64 lastBn = gs.latestUpdateBlock(alice, key);
-        uint64 lastTs = gs.latestUpdateTimestamp(alice, key);
-        assertEq(lastBn, bn);
-        assertEq(lastTs, ts);
+        uint64 lastBlockNumber = gs.latestUpdateBlock(alice, key);
+        uint64 lastTimestamp = gs.latestUpdateTimestamp(alice, key);
+        assertEq(lastBlockNumber, blockNumber);
+        assertEq(lastTimestamp, timestamp);
     }
 
     function testNamespacesIsolation() public {
@@ -62,11 +62,11 @@ contract GlobalStorageTest is Test {
         assertEq(gs.get(bob, keys[0]), vals[0]);
         assertEq(gs.get(bob, keys[1]), vals[1]);
 
-        (bytes32 v0,, uint64 bn0) = gs.getWithTimestamp(bob, keys[0]);
-        (bytes32 v1,, uint64 bn1) = gs.getWithTimestamp(bob, keys[1]);
+        (bytes32 v0,, uint64 blockNumber0) = gs.getWithTimestamp(bob, keys[0]);
+        (bytes32 v1,, uint64 blockNumber1) = gs.getWithTimestamp(bob, keys[1]);
         assertEq(v0, vals[0]);
         assertEq(v1, vals[1]);
-        assertEq(bn0, bn1);
+        assertEq(blockNumber0, blockNumber1);
     }
 
     function testSetBatchRevertsOnLengthMismatch() public {

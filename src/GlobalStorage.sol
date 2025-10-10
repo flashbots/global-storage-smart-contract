@@ -19,26 +19,26 @@ contract GlobalStorage is IGlobalStorage {
     /// @inheritdoc IGlobalStorage
     function set(bytes32 key, bytes32 value) external {
         valueOf[msg.sender][key] = value;
-        uint64 bn = uint64(block.number);
-        uint64 ts = uint64(block.timestamp);
-        uint128 packed = (uint128(ts) << 64) | uint128(bn);
+        uint64 blockNumber = uint64(block.number);
+        uint64 timestamp = uint64(block.timestamp);
+        uint128 packed = (uint128(timestamp) << 64) | uint128(blockNumber);
         lastUpdatePacked[msg.sender][key] = packed;
-        emit GlobalValueSet(msg.sender, key, value, bn, ts);
+        emit GlobalValueSet(msg.sender, key, value, blockNumber, timestamp);
     }
 
     /// @inheritdoc IGlobalStorage
     function setBatch(bytes32[] calldata keys, bytes32[] calldata values) external {
         if (keys.length != values.length) revert MismatchedInputLengths();
-        uint64 bn = uint64(block.number);
-        uint64 ts = uint64(block.timestamp);
-        uint128 packed = (uint128(ts) << 64) | uint128(bn);
+        uint64 blockNumber = uint64(block.number);
+        uint64 timestamp = uint64(block.timestamp);
+        uint128 packed = (uint128(timestamp) << 64) | uint128(blockNumber);
         for (uint256 i = 0; i < keys.length; i++) {
             bytes32 key = keys[i];
             bytes32 value = values[i];
             valueOf[msg.sender][key] = value;
             lastUpdatePacked[msg.sender][key] = packed;
         }
-        emit GlobalValuesSet(msg.sender, keys, values, bn, ts);
+        emit GlobalValuesSet(msg.sender, keys, values, blockNumber, timestamp);
     }
 
     /// @inheritdoc IGlobalStorage
@@ -53,9 +53,9 @@ contract GlobalStorage is IGlobalStorage {
         returns (bytes32 value, uint64 blockTimestamp, uint64 blockNumber)
     {
         uint128 packed = lastUpdatePacked[owner][key];
-        uint64 bn = uint64(packed);
-        uint64 ts = uint64(packed >> 64);
-        return (valueOf[owner][key], ts, bn);
+        uint64 decodedBlockNumber = uint64(packed);
+        uint64 decodedBlockTimestamp = uint64(packed >> 64);
+        return (valueOf[owner][key], decodedBlockTimestamp, decodedBlockNumber);
     }
 
     /// @inheritdoc IGlobalStorage
