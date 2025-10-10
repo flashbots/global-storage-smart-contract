@@ -10,11 +10,8 @@ contract GlobalStorage is IGlobalStorage {
     /// @dev Stored values by namespace owner and key.
     mapping(address => mapping(bytes32 => bytes32)) private valueOf;
 
-    /// @dev Metadata for last update block by owner and key.
-    mapping(address => mapping(bytes32 => uint64)) private lastUpdateBlock;
-
-    /// @dev Metadata for last update timestamp by owner and key.
-    mapping(address => mapping(bytes32 => uint64)) private lastUpdateTimestamp;
+    /// @dev Packed metadata (timestamp in high 64 bits, block number in low 64 bits).
+    mapping(address => mapping(bytes32 => uint128)) private lastUpdatePacked;
 
     /// @dev Revert when keys and values array lengths do not match.
     error MismatchedInputLengths();
@@ -24,8 +21,8 @@ contract GlobalStorage is IGlobalStorage {
         valueOf[msg.sender][key] = value;
         uint64 bn = uint64(block.number);
         uint64 ts = uint64(block.timestamp);
-        lastUpdateBlock[msg.sender][key] = bn;
-        lastUpdateTimestamp[msg.sender][key] = ts;
+        uint128 packed = (uint128(ts) << 64) | uint128(bn);
+        lastUpdatePacked[msg.sender][key] = packed;
         emit GlobalValueSet(msg.sender, key, value, bn, ts);
     }
 
@@ -34,12 +31,12 @@ contract GlobalStorage is IGlobalStorage {
         if (keys.length != values.length) revert MismatchedInputLengths();
         uint64 bn = uint64(block.number);
         uint64 ts = uint64(block.timestamp);
+        uint128 packed = (uint128(ts) << 64) | uint128(bn);
         for (uint256 i = 0; i < keys.length; i++) {
             bytes32 key = keys[i];
             bytes32 value = values[i];
             valueOf[msg.sender][key] = value;
-            lastUpdateBlock[msg.sender][key] = bn;
-            lastUpdateTimestamp[msg.sender][key] = ts;
+            lastUpdatePacked[msg.sender][key] = packed;
         }
         emit GlobalValuesSet(msg.sender, keys, values, bn, ts);
     }
@@ -55,16 +52,21 @@ contract GlobalStorage is IGlobalStorage {
         view
         returns (bytes32 value, uint64 blockTimestamp, uint64 blockNumber)
     {
-        return (valueOf[owner][key], lastUpdateTimestamp[owner][key], lastUpdateBlock[owner][key]);
+        uint128 packed = lastUpdatePacked[owner][key];
+        uint64 bn = uint64(packed);
+        uint64 ts = uint64(packed >> 64);
+        return (valueOf[owner][key], ts, bn);
     }
 
     /// @inheritdoc IGlobalStorage
     function latestUpdateBlock(address owner, bytes32 key) external view returns (uint64) {
-        return lastUpdateBlock[owner][key];
+        uint128 packed = lastUpdatePacked[owner][key];
+        return uint64(packed);
     }
 
     /// @inheritdoc IGlobalStorage
     function latestUpdateTimestamp(address owner, bytes32 key) external view returns (uint64) {
-        return lastUpdateTimestamp[owner][key];
+        uint128 packed = lastUpdatePacked[owner][key];
+        return uint64(packed >> 64);
     }
 }
