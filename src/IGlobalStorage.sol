@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 /// @title IGlobalStorage
-/// @notice Neutral, namespaced key-value store interface for ToB oracle updates.
+/// @notice Neutral, namespaced key-value store interface for ToB prop AMM updates.
 interface IGlobalStorage {
     /// @notice Sets a value in the caller's namespace.
     /// @param key The key within the caller's namespace.
@@ -19,27 +19,6 @@ interface IGlobalStorage {
     /// @param key The key to read.
     /// @return value The stored value or zero if unset.
     function get(address owner, bytes32 key) external view returns (bytes32 value);
-
-    /// @notice Returns value with last update time metadata.
-    /// @param owner The namespace owner to read from.
-    /// @param key The key to read.
-    /// @return value The value stored.
-    /// @return blockTimestamp The last update timestamp (seconds).
-    /// @return blockNumber The last update block number.
-    function getWithTimestamp(address owner, bytes32 key)
-        external
-        view
-        returns (bytes32 value, uint64 blockTimestamp, uint64 blockNumber);
-
-    /// @notice Returns the last update block number for the given key.
-    /// @param owner The namespace owner to read from.
-    /// @param key The key to read.
-    function latestUpdateBlock(address owner, bytes32 key) external view returns (uint64);
-
-    /// @notice Returns the last update timestamp for the given key.
-    /// @param owner The namespace owner to read from.
-    /// @param key The key to read.
-    function latestUpdateTimestamp(address owner, bytes32 key) external view returns (uint64);
 
     /// @notice Emitted on single write.
     /// @param owner The namespace owner (i.e., msg.sender).

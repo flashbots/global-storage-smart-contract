@@ -17,7 +17,7 @@ With a builder that treats `to == GlobalStorage` transactions as ToB, latency-se
 - Block builders implement a policy where any transaction whose `to` equals `GlobalStorage` is treated by builders as an “oracle update” and moved into the ToB tranche. Inside the tranche is ordered by priority fee (similar to a local fee market).
 - The contract is minimal and neutral: it only allows setting/getting values in storage slots namespaced by the sender’s address.
 - Writers call `set(bytes32 key, bytes32 value)` or `setBatch(keys, values)`.
-- Readers fetch values via `get(address owner, bytes32 key)` (and freshness helpers).
+- Readers fetch values via `get(address owner, bytes32 key)`.
 - Namespacing: `mapping(address => mapping(bytes32 => bytes32))` to ensure writers only mutate their own keys.
 
 ### Actors and Flows
@@ -28,7 +28,7 @@ With a builder that treats `to == GlobalStorage` transactions as ToB, latency-se
   3. Builder policy places this tx in the ToB tranche.
 
 - Reader (Prop AMM):
-  - Read `GlobalStorage.get(owner, key)` for values that determines the Prop AMM's price curve, and optionally enforce freshness via `latestUpdateBlock(owner, key) == block.number`.
+  - Read `GlobalStorage.get(owner, key)` for values that determine the Prop AMM's price curve. For freshness, rely on ToB builder policy and/or encode freshness within the stored `bytes32` (e.g., sequence number) and verify it in the consumer.
 
 - Builders/Proposers:
   - Adopt a policy: all `to == GlobalStorage` txs receive ToB ordering, where transactions inside the ToB section are ordered by priority fee.
@@ -40,9 +40,6 @@ Main functions exposed by `src/IGlobalStorage.sol` / `src/GlobalStorage.sol`:
 - `set(bytes32 key, bytes32 value)`
 - `setBatch(bytes32[] keys, bytes32[] values)`
 - `get(address owner, bytes32 key) -> bytes32`
-- `getWithTimestamp(address owner, bytes32 key) -> (bytes32 value, uint64 blockTimestamp, uint64 blockNumber)`
-- `latestUpdateBlock(address owner, bytes32 key) -> uint64`
-- `latestUpdateTimestamp(address owner, bytes32 key) -> uint64`
 
 Events:
 
@@ -66,18 +63,6 @@ interface IGlobalStorage {
     /// @dev Reads a value in `owner`'s namespace.
     function get(address owner, bytes32 key) external view returns (bytes32);
 
-    /// @dev Returns value with last update time metadata.
-    function getWithTimestamp(address owner, bytes32 key)
-        external
-        view
-        returns (bytes32 value, uint64 blockTimestamp, uint64 blockNumber);
-
-    /// @dev Returns the last update block number for the given key.
-    function latestUpdateBlock(address owner, bytes32 key) external view returns (uint64);
-
-    /// @dev Returns the last update timestamp for the given key.
-    function latestUpdateTimestamp(address owner, bytes32 key) external view returns (uint64);
-
     /// @dev Emitted on single write.
     event GlobalValueSet(
         address indexed owner,
@@ -100,11 +85,9 @@ interface IGlobalStorage {
 
 - Storage layout:
   - `mapping(address => mapping(bytes32 => bytes32)) valueOf;`
-  - `mapping(address => mapping(bytes32 => uint64)) lastUpdateBlock;`
-  - `mapping(address => mapping(bytes32 => uint64)) lastUpdateTimestamp;`
 
 - Behavior:
-  - `set` and `setBatch` update value and metadata; emit events.
+  - `set` and `setBatch` update value; emit events.
   - No reentrancy (no external calls), no governance.
 
 #### Keying Scheme
@@ -131,10 +114,7 @@ IGlobalStorage(GLOBAL_STORAGE_ADDR).set(key, priceQ64_64);
 - Reader (during swap):
 
 ```solidity
-(bytes32 v, uint64 ts, uint64 bn) = IGlobalStorage(GLOBAL_STORAGE_ADDR)
-    .getWithTimestamp(oracleWriter, key);
-require(bn == block.number, "stale");
-// decode v as needed, apply slippage guards
+bytes32 value = IGlobalStorage(GLOBAL_STORAGE_ADDR).get(oracleWriter, key);
 ```
 
 #### Open Questions
@@ -205,9 +185,7 @@ IGlobalStorage(GLOBAL_STORAGE_ADDR).set(key, priceQ64_64);
 Reader fetches and enforces freshness in the same block:
 
 ```solidity
-(bytes32 value, uint64 ts, uint64 bn) = IGlobalStorage(GLOBAL_STORAGE_ADDR)
-    .getWithTimestamp(oracleWriter, key);
-require(bn == block.number, "stale");
+bytes32 value = IGlobalStorage(GLOBAL_STORAGE_ADDR).get(oracleWriter, key);
 ```
 
 For more context, examples, and keying schemes, see the design sections above and the tests in `test/GlobalStorage.t.sol`.
